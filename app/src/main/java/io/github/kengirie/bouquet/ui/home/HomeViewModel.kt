@@ -29,6 +29,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
+ * Selects which surface a successful resolution should launch into. The
+ * resolve pipeline (write relays → manifest → Blossom servers) is the
+ * same for both targets — only the final one-shot navigation event
+ * differs.
+ */
+enum class OpenTarget { Browser, WebView }
+
+/**
  * UI projection of the Home screen state. Top-level holder consumed by
  * [HomeScreen] via `collectAsStateWithLifecycle`.
  */
@@ -71,8 +79,9 @@ data class AddressDisplay(
 /**
  * State machine for the "Open" flow. Transitions: Idle → InProgress(stage)
  * progresses through the three fetch stages, then either resets to Idle on
- * success (with a one-shot [HomeViewModel.HomeEvent.LaunchViewer] event) or
- * lands on [Failure] which is rendered inline by HomeScreen.
+ * success (with a one-shot [HomeViewModel.HomeEvent.LaunchViewer] or
+ * [HomeViewModel.HomeEvent.LaunchBrowser] event) or lands on [Failure]
+ * which is rendered inline by HomeScreen.
  */
 sealed class ResolutionState {
     data object Idle : ResolutionState()
@@ -175,8 +184,11 @@ class DefaultSiteResolver(private val app: BouquetApplication) : SiteResolver {
  * The "open" coroutine is launched into [viewModelScope] so it is
  * automatically cancelled when the ViewModel is cleared — no manual
  * `Job.cancel` housekeeping needed. On success, a one-shot
- * [HomeEvent.LaunchViewer] is sent on [events]; HomeScreen collects this
- * via `LaunchedEffect` and starts the [io.github.kengirie.bouquet.viewer.ViewerActivity].
+ * [HomeEvent.LaunchViewer] (for [OpenTarget.WebView]) or
+ * [HomeEvent.LaunchBrowser] (for [OpenTarget.Browser]) is sent on
+ * [events]; HomeScreen collects this via `LaunchedEffect` and starts the
+ * [io.github.kengirie.bouquet.viewer.ViewerActivity] or dispatches an
+ * `Intent.ACTION_VIEW` accordingly.
  */
 class HomeViewModel(
     private val savedState: SavedStateHandle,
@@ -184,12 +196,16 @@ class HomeViewModel(
 ) : ViewModel() {
 
     /**
-     * One-shot side-effect events emitted by the ViewModel. Currently the
-     * only event is [LaunchViewer]; modeled as a sealed class so adding
-     * more (e.g. analytics, snackbars) doesn't ripple through the API.
+     * One-shot side-effect events emitted by the ViewModel. The two
+     * launch events differ only in destination — [LaunchViewer] starts
+     * the in-app [io.github.kengirie.bouquet.viewer.ViewerActivity] and
+     * [LaunchBrowser] dispatches an `Intent.ACTION_VIEW` to the system
+     * browser. Modeled as a sealed class so adding more (e.g. analytics,
+     * snackbars) doesn't ripple through the API.
      */
     sealed class HomeEvent {
         data class LaunchViewer(val addressSegment: String) : HomeEvent()
+        data class LaunchBrowser(val addressSegment: String) : HomeEvent()
     }
 
     private val _uiState = MutableStateFlow(
@@ -231,7 +247,7 @@ class HomeViewModel(
         }
     }
 
-    fun onOpenClick() {
+    fun onOpenClick(target: OpenTarget) {
         val decoded = (_uiState.value.decodeResult as? DecodeResult.Success) ?: return
         // Idempotency: ignore re-clicks while a resolution is in flight.
         if (_uiState.value.resolution is ResolutionState.InProgress) return
@@ -257,7 +273,11 @@ class HomeViewModel(
                 // the desktop's `bouquet:open-site` URL contract.
                 val segment = _uiState.value.input.trim()
                 _uiState.update { it.copy(resolution = ResolutionState.Idle) }
-                _events.send(HomeEvent.LaunchViewer(segment))
+                val event = when (target) {
+                    OpenTarget.WebView -> HomeEvent.LaunchViewer(segment)
+                    OpenTarget.Browser -> HomeEvent.LaunchBrowser(segment)
+                }
+                _events.send(event)
             } catch (e: CancellationException) {
                 // Cooperative cancellation must propagate so viewModelScope
                 // can clean up. Don't lump it in with the generic catch.

@@ -152,7 +152,7 @@ class HomeViewModelTest {
         val collected = mutableListOf<HomeViewModel.HomeEvent>()
         val collectJob = launch { vm.events.collect { collected.add(it) } }
 
-        vm.onOpenClick()
+        vm.onOpenClick(OpenTarget.WebView)
         advanceUntilIdle()
 
         assertEquals(0, resolver.calls)
@@ -174,14 +174,14 @@ class HomeViewModelTest {
 
         vm.onInputChange(npub)
 
-        vm.onOpenClick()
+        vm.onOpenClick(OpenTarget.WebView)
         // Let the launch coroutine start so resolve() is actually invoked.
         // (The first click only sets InProgress synchronously; the actual
         // resolver.resolve() suspends inside the launched coroutine.)
         testDispatcher.scheduler.runCurrent()
 
         // Second click while still in flight: should NOT invoke resolver again.
-        vm.onOpenClick()
+        vm.onOpenClick(OpenTarget.WebView)
         testDispatcher.scheduler.runCurrent()
         assertEquals(1, resolver.calls)
         assertTrue(vm.uiState.value.resolution is ResolutionState.InProgress)
@@ -211,7 +211,7 @@ class HomeViewModelTest {
         val collectJob = launch { vm.events.collect { collected.add(it) } }
 
         vm.onInputChange(npub)
-        vm.onOpenClick()
+        vm.onOpenClick(OpenTarget.WebView)
         advanceUntilIdle()
 
         val r = vm.uiState.value.resolution
@@ -236,7 +236,7 @@ class HomeViewModelTest {
         val collected = mutableListOf<HomeViewModel.HomeEvent>()
         val collectJob = launch { vm.events.collect { collected.add(it) } }
 
-        vm.onOpenClick()
+        vm.onOpenClick(OpenTarget.WebView)
         advanceUntilIdle()
 
         assertEquals(1, collected.size)
@@ -250,6 +250,44 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `WebView target emits LaunchViewer event with the trimmed input`() = runTest {
+        val resolver = FakeResolver { _, _ -> /* succeed instantly */ }
+        val vm = viewModel(resolver = resolver)
+        vm.onInputChange(npub)
+
+        val collected = mutableListOf<HomeViewModel.HomeEvent>()
+        val collectJob = launch { vm.events.collect { collected.add(it) } }
+
+        vm.onOpenClick(OpenTarget.WebView)
+        advanceUntilIdle()
+
+        assertEquals(1, collected.size)
+        val ev = collected.first()
+        assertTrue("expected LaunchViewer, got $ev", ev is HomeViewModel.HomeEvent.LaunchViewer)
+        assertEquals(npub, (ev as HomeViewModel.HomeEvent.LaunchViewer).addressSegment)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `Browser target emits LaunchBrowser event with the trimmed input`() = runTest {
+        val resolver = FakeResolver { _, _ -> /* succeed instantly */ }
+        val vm = viewModel(resolver = resolver)
+        vm.onInputChange(npub)
+
+        val collected = mutableListOf<HomeViewModel.HomeEvent>()
+        val collectJob = launch { vm.events.collect { collected.add(it) } }
+
+        vm.onOpenClick(OpenTarget.Browser)
+        advanceUntilIdle()
+
+        assertEquals(1, collected.size)
+        val ev = collected.first()
+        assertTrue("expected LaunchBrowser, got $ev", ev is HomeViewModel.HomeEvent.LaunchBrowser)
+        assertEquals(npub, (ev as HomeViewModel.HomeEvent.LaunchBrowser).addressSegment)
+        collectJob.cancel()
+    }
+
+    @Test
     fun `onInputChange clears prior resolution Failure state`() = runTest {
         // Drive the VM into ResolutionState.Failure by letting the resolver
         // throw, then type a new address and verify the failure is cleared.
@@ -257,7 +295,7 @@ class HomeViewModelTest {
         val vm = viewModel(resolver = resolver)
 
         vm.onInputChange(npub)
-        vm.onOpenClick()
+        vm.onOpenClick(OpenTarget.WebView)
         advanceUntilIdle()
         assertTrue(
             "precondition: expected Failure, got ${vm.uiState.value.resolution}",
