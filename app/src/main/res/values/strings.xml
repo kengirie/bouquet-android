@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Bouquet</string>
+    <string name="home_title">Bouquet</string>
+    <string name="home_input_label">Nostr address</string>
+    <string name="home_input_placeholder">npub1… / nprofile1… / naddr1…</string>
+    <string name="home_button_open">Open</string>
+    <string name="home_status_fetching_relays">Fetching write relays…</string>
+    <string name="home_status_fetching_manifest">Fetching manifest…</string>
+    <string name="home_status_fetching_blossom">Fetching Blossom server list…</string>
+</resources>

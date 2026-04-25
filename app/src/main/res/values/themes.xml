@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Platform-level theme used by the app's Activity windows before Compose
+      attaches. Inheriting from the dark Material parent (no action bar) and
+      pinning the window background to Bouquet's deep blue-purple keeps the
+      pre-first-frame paint consistent with the Compose dark color scheme so
+      there's no white flash on launch.
+    -->
+    <style name="Theme.Bouquet" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bouquet_background</item>
+        <item name="android:colorBackground">@color/bouquet_background</item>
+        <item name="android:textColorPrimary">@color/bouquet_on_background</item>
+        <item name="android:statusBarColor">@color/bouquet_background</item>
+        <item name="android:navigationBarColor">@color/bouquet_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
