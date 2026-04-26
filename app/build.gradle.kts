@@ -1,9 +1,35 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Release signing — driven by env vars in CI, or `keystore.properties` locally.
+// Falls back to debug signing if neither source is available, so plain
+// `./gradlew assembleRelease` still works without setup. See
+// docs/release-signing.md for the GitHub Actions / Secrets setup.
+val releaseKeystoreFile = file("keystore/release.keystore")
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        FileInputStream(keystorePropertiesFile).use { load(it) }
+    }
+}
+
+fun signingValue(envName: String, propName: String = envName): String? =
+    System.getenv(envName)?.takeIf { it.isNotBlank() }
+        ?: keystoreProperties.getProperty(propName)?.takeIf { it.isNotBlank() }
+
+val releaseStorePassword = signingValue("KEYSTORE_PASSWORD")
+val releaseKeyAlias = signingValue("KEY_ALIAS")
+val releaseKeyPassword = signingValue("KEY_PASSWORD")
+val canSignRelease = releaseKeystoreFile.exists() &&
+    releaseStorePassword != null &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null
 
 android {
     namespace = "io.github.kengirie.bouquet"
@@ -23,6 +49,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (canSignRelease) {
+            create("release") {
+                storeFile = releaseKeystoreFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -34,10 +71,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Use debug signing so the release APK is installable on the
-            // user's device for verification. Replace with a real keystore
-            // for Play Store / production distribution.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (canSignRelease) {
+                signingConfigs.getByName("release")
+            } else {
+                // Local builds without a release keystore fall back to debug
+                // signing so the APK is still installable for testing.
+                signingConfigs.getByName("debug")
+            }
         }
     }
     compileOptions {
