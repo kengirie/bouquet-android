@@ -70,4 +70,4 @@ git push origin v0.1.0
 
 ## License
 
-MIT (TBD — see project root for any LICENSE file once added).
+[MIT](LICENSE)
