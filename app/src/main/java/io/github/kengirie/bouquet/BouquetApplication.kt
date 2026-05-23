@@ -9,6 +9,7 @@ import com.vitorpamplona.quartz.nipB7Blossom.BlossomServersEvent
 import io.github.kengirie.bouquet.blossom.BlossomFetcher
 import io.github.kengirie.bouquet.cache.FileBlobCache
 import io.github.kengirie.bouquet.cache.JsonEventCache
+import io.github.kengirie.bouquet.cache.TimelineSnapshotCache
 import io.github.kengirie.bouquet.config.Defaults
 import io.github.kengirie.bouquet.core.BlobFetchResult
 import io.github.kengirie.bouquet.core.GatewayDeps
@@ -60,6 +61,10 @@ class BouquetApplication : Application() {
 
     val blobCache: FileBlobCache by lazy {
         FileBlobCache(rootDir = File(cacheDir, "blob-cache"))
+    }
+
+    val timelineSnapshotCache: TimelineSnapshotCache by lazy {
+        TimelineSnapshotCache(file = File(filesDir, "timeline-cache.json"))
     }
 
     val gatewayDeps: GatewayDeps by lazy {
