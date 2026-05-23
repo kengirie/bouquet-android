@@ -253,8 +253,8 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = Color(0xFF2E7D32),
+                    contentColor = Color.White,
                 ),
             ) {
                 Text(stringResource(R.string.home_button_open_browser))
