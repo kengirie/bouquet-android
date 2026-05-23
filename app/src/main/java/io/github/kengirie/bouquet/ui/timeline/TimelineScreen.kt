@@ -92,7 +92,10 @@ fun TimelineScreen(modifier: Modifier = Modifier) {
                 }
                 is TimelineViewModel.TimelineEvent.LaunchBrowser -> {
                     val app = context.applicationContext as BouquetApplication
-                    val session = app.sessionRegistry.createSession(event.addressSegment)
+                    val session = app.sessionRegistry.createSession(
+                        event.addressSegment,
+                        idleTimeout = true,
+                    )
                     val url = "http://127.0.0.1:${session.port}/"
                     try {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))

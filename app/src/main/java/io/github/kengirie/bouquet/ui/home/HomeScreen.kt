@@ -89,11 +89,13 @@ fun HomeScreen(
                 is HomeViewModel.HomeEvent.LaunchBrowser -> {
                     // Allocate a fresh NanoHTTPD listener for this browser
                     // tab and dispatch ACTION_VIEW pointing at its loopback
-                    // port. Session lifetime is bounded by process death /
-                    // BouquetApplication.onTerminate — see PLAN notes; out
-                    // of scope to add timeout-based cleanup here.
+                    // port. No Activity owns this session, so opt into the
+                    // registry's idle-timeout sweep (see Defaults).
                     val app = context.applicationContext as BouquetApplication
-                    val session = app.sessionRegistry.createSession(event.addressSegment)
+                    val session = app.sessionRegistry.createSession(
+                        event.addressSegment,
+                        idleTimeout = true,
+                    )
                     val url = "http://127.0.0.1:${session.port}/"
                     try {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))

@@ -19,6 +19,7 @@ import org.junit.Test
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Smoke tests for the loopback gateway listener. Each test spins up a real
@@ -147,6 +148,112 @@ class SessionRegistryTest {
             }
         } finally {
             registry.closeAllSessions()
+        }
+    }
+
+    @Test
+    fun `idle session is closed after timeout elapses`() {
+        val fakeNow = AtomicLong(0L)
+        val timeoutMs = 600_000L // 10 minutes
+        val registry = SessionRegistry(
+            deps = deps("x".toByteArray()),
+            clock = { fakeNow.get() },
+            idleTimeoutMs = timeoutMs,
+            sweepIntervalMs = 0L, // disable background ticker; drive manually
+        )
+        val session = registry.createSession(npubFor(pubkey), idleTimeout = true)
+        try {
+            // At the boundary — must NOT close.
+            fakeNow.set(timeoutMs)
+            registry.sweepIdleSessions()
+            assertEquals(1, registry.activeSessionCount)
+
+            // Past the timeout — sweep should close.
+            fakeNow.set(timeoutMs + 1)
+            registry.sweepIdleSessions()
+            assertEquals(0, registry.activeSessionCount)
+            assertSessionGone(session.port)
+        } finally {
+            registry.closeAllSessions()
+        }
+    }
+
+    @Test
+    fun `requests reset the idle timer`() {
+        val fakeNow = AtomicLong(0L)
+        val timeoutMs = 600_000L
+        val registry = SessionRegistry(
+            deps = deps("hello".toByteArray()),
+            clock = { fakeNow.get() },
+            idleTimeoutMs = timeoutMs,
+            sweepIntervalMs = 0L,
+        )
+        val session = registry.createSession(npubFor(pubkey), idleTimeout = true)
+        try {
+            // Advance partway through the window, then hit the listener so
+            // serve() updates lastRequestAtMs to the current fake clock.
+            val requestAt = timeoutMs - 1
+            fakeNow.set(requestAt)
+            val request = Request.Builder()
+                .url("http://127.0.0.1:${session.port}/")
+                .get()
+                .build()
+            httpClient.newCall(request).execute().use { resp ->
+                assertEquals(200, resp.code)
+            }
+
+            // Advance another full window from the request. Without the
+            // reset this would be past the timeout-from-creation by far;
+            // with the reset, we're exactly at the boundary → still alive.
+            fakeNow.set(requestAt + timeoutMs)
+            registry.sweepIdleSessions()
+            assertEquals(1, registry.activeSessionCount)
+
+            // One more tick crosses the threshold relative to the request.
+            fakeNow.set(requestAt + timeoutMs + 1)
+            registry.sweepIdleSessions()
+            assertEquals(0, registry.activeSessionCount)
+        } finally {
+            registry.closeAllSessions()
+        }
+    }
+
+    @Test
+    fun `webview sessions are not affected by the idle sweep`() {
+        val fakeNow = AtomicLong(0L)
+        val timeoutMs = 1_000L
+        val registry = SessionRegistry(
+            deps = deps("x".toByteArray()),
+            clock = { fakeNow.get() },
+            idleTimeoutMs = timeoutMs,
+            sweepIntervalMs = 0L,
+        )
+        // idleTimeout defaults to false — this is the WebView path.
+        registry.createSession(npubFor(pubkey))
+        try {
+            fakeNow.set(timeoutMs * 100)
+            registry.sweepIdleSessions()
+            assertEquals(1, registry.activeSessionCount)
+        } finally {
+            registry.closeAllSessions()
+        }
+    }
+
+    private fun assertSessionGone(port: Int) {
+        val request = Request.Builder()
+            .url("http://127.0.0.1:$port/")
+            .get()
+            .build()
+        try {
+            httpClient.newCall(request).execute().use { resp ->
+                // Same caveat as `closeSession releases the listener`: a
+                // closed socket may briefly accept and then fail. The
+                // important thing is we no longer get a 200 from the
+                // resolved-blob path.
+                assertNotEquals(200, resp.code)
+            }
+        } catch (_: IOException) {
+            // Connection refused — listener is gone.
         }
     }
 
