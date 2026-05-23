@@ -1,6 +1,7 @@
 package io.github.kengirie.bouquet.viewer
 
 import fi.iki.elonen.NanoHTTPD
+import io.github.kengirie.bouquet.config.Defaults
 import io.github.kengirie.bouquet.core.GatewayDeps
 import io.github.kengirie.bouquet.core.GatewayError
 import io.github.kengirie.bouquet.core.ResolvedSiteResource
@@ -10,6 +11,9 @@ import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayInputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 /**
  * Identity of a single viewer session: a NanoHTTPD listener bound to
@@ -31,30 +35,80 @@ data class ViewerSession(
  * Thread-safe: `ConcurrentHashMap` for the session map, and `NanoHTTPD`
  * itself spawns a request thread per connection so [resolveSiteResource]
  * is invoked off-main.
+ *
+ * Browser sessions (no owning Activity) opt into an idle-timeout sweep by
+ * passing `idleTimeout = true` to [createSession]; WebView sessions keep
+ * the default and rely on Activity lifecycle to call [closeSession].
  */
-class SessionRegistry(private val deps: GatewayDeps) {
-    private val sessions = ConcurrentHashMap<String, SessionServer>()
+class SessionRegistry(
+    private val deps: GatewayDeps,
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val idleTimeoutMs: Long = Defaults.BROWSER_SESSION_IDLE_TIMEOUT_MS,
+    sweepIntervalMs: Long = Defaults.BROWSER_SESSION_SWEEP_INTERVAL_MS,
+) {
+    private val sessions = ConcurrentHashMap<String, SessionEntry>()
 
-    fun createSession(addressSegment: String): ViewerSession {
+    // Daemon scheduler so it never blocks JVM shutdown. Disabled (null) when
+    // sweepIntervalMs <= 0 so unit tests can drive sweepIdleSessions()
+    // deterministically without a background ticker.
+    private val scheduler: ScheduledExecutorService? = if (sweepIntervalMs > 0) {
+        Executors.newSingleThreadScheduledExecutor { r ->
+            Thread(r, "bouquet-session-sweeper").apply { isDaemon = true }
+        }.also {
+            it.scheduleWithFixedDelay(
+                { runCatching { sweepIdleSessions() } },
+                sweepIntervalMs,
+                sweepIntervalMs,
+                TimeUnit.MILLISECONDS,
+            )
+        }
+    } else {
+        null
+    }
+
+    fun createSession(addressSegment: String, idleTimeout: Boolean = false): ViewerSession {
         val id = UUID.randomUUID().toString()
-        val server = SessionServer(addressSegment, deps)
+        val server = SessionServer(addressSegment, deps, clock)
         // Port 0 → OS picks; `listeningPort` reads back the assigned value
         // after start() returns successfully.
         server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false)
         val session = ViewerSession(id, addressSegment, server.listeningPort)
-        sessions[id] = server
+        sessions[id] = SessionEntry(server, idleTimeout)
         return session
     }
 
     fun closeSession(id: String) {
-        sessions.remove(id)?.stop()
+        sessions.remove(id)?.server?.stop()
     }
 
     fun closeAllSessions() {
         val snapshot = sessions.toMap()
         sessions.clear()
-        snapshot.values.forEach { runCatching { it.stop() } }
+        snapshot.values.forEach { runCatching { it.server.stop() } }
+        scheduler?.shutdownNow()
     }
+
+    /** Test hook: number of sessions currently tracked. */
+    internal val activeSessionCount: Int
+        get() = sessions.size
+
+    /**
+     * Closes any idle-timeout-eligible session whose last request is older
+     * than [idleTimeoutMs]. Exposed for tests; the background scheduler
+     * calls this on a fixed cadence.
+     */
+    fun sweepIdleSessions(nowMs: Long = clock()) {
+        val iterator = sessions.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next().value
+            if (!entry.idleEligible) continue
+            if (nowMs - entry.server.lastRequestAtMs <= idleTimeoutMs) continue
+            iterator.remove()
+            runCatching { entry.server.stop() }
+        }
+    }
+
+    private class SessionEntry(val server: SessionServer, val idleEligible: Boolean)
 }
 
 /**
@@ -66,9 +120,15 @@ class SessionRegistry(private val deps: GatewayDeps) {
 private class SessionServer(
     private val addressSegment: String,
     private val deps: GatewayDeps,
+    private val clock: () -> Long,
 ) : NanoHTTPD("127.0.0.1", 0) {
 
+    @Volatile
+    var lastRequestAtMs: Long = clock()
+        private set
+
     override fun serve(session: IHTTPSession): Response {
+        lastRequestAtMs = clock()
         val method = session.method
         val path = session.uri.ifEmpty { "/" }
 

@@ -50,4 +50,10 @@ object Defaults {
 
     /** Maximum nsite events fetched per timeline page. */
     const val TIMELINE_PAGE_LIMIT = 30
+
+    // Browser sessions have no owning Activity, so the registry sweeps them
+    // after this window of inactivity. WebView sessions opt out — their
+    // lifetime tracks the hosting Activity instead.
+    const val BROWSER_SESSION_IDLE_TIMEOUT_MS = 10L * 60_000L // 10 minutes
+    const val BROWSER_SESSION_SWEEP_INTERVAL_MS = 60_000L // 1 minute
 }
