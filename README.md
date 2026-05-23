@@ -9,9 +9,9 @@ Nostr static-website gateway for Android. Paste an `npub1…` or a NIP-5A canoni
 
 ## Abstract
 
-[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) defines a contract for static websites whose path-to-hash manifest is published as a Nostr event (kind `15128` / `35128`) and whose file blobs are stored on Blossom servers. The spec accompanies this contract with a **smart-server** reference implementation: a trusted HTTP host (e.g. `nsite-host.com`) parses a canonical subdomain label, fetches the author's NIP-65 relay list, retrieves the manifest, pulls each referenced blob from the author's Blossom servers, and re-serves the result over HTTPS. The browser performs no Nostr work; it speaks to a single centralized intermediary that terminates TLS, observes every request, and is in a position to censor or rewrite content for the entire pubkey.
+[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) publishes static sites as a Nostr manifest event (kind `15128` / `35128`) plus file blobs on Blossom servers. The spec ships a **smart-server** reference: a centralized HTTPS host (e.g. `nsite-host.com`) resolves the manifest, fetches blobs, and re-serves the site — so the browser trusts a single intermediary that terminates TLS, observes every request, and can deplatform a pubkey by dropping a subdomain.
 
-Bouquet inverts that arrangement. The same resolution pipeline runs **on the client**: the Android app subscribes to relays directly, fetches the manifest event, verifies each blob's SHA-256, and serves the rendered site over `http://127.0.0.1` to a hardened in-app WebView or the system browser. No third party stands between the user and the Nostr / Blossom network — each site loads against the user's own view of the relay set, with no shared TLS termination, no shared cache, and no operator capable of deplatforming a pubkey by dropping a subdomain. In spirit this is how a Nostr client normally works — direct relay subscriptions and per-event signature verification — applied to the static-web use case, rather than collapsing the network back into a single HTTP origin.
+Bouquet inverts that. The Android app subscribes to relays directly, fetches the manifest, verifies each blob's SHA-256, and serves the result over `http://127.0.0.1` to a hardened in-app WebView. No third party sits between the user and the Nostr / Blossom network.
 
 NIP-5A approach (smart server):
 
@@ -19,7 +19,7 @@ NIP-5A approach (smart server):
   ┌──────────────────────────────────────┐
   │  Relays + Blossom servers   (dumb)   │
   └────────────────────┬─────────────────┘
-                       │ NIP-65 / BUD-01
+                       │ site manifest + blobs
                        ▼
   ┌──────────────────────────────────────┐
   │  nsite-host.com             (smart)  │
@@ -40,7 +40,7 @@ Bouquet approach (smart client):
   ┌──────────────────────────────────────┐
   │  Relays + Blossom servers   (dumb)   │
   └────────────────────┬─────────────────┘
-                       │ NIP-65 / BUD-01
+                       │ site manifest + blobs
                        ▼
   ┌──────────────────────────────────────┐
   │  User device                (smart)  │
@@ -49,6 +49,20 @@ Bouquet approach (smart client):
   │  serves on 127.0.0.1 → WebView       │
   └──────────────────────────────────────┘
 ```
+
+### Related: [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck)
+
+nsite-deck is another smart-client implementation, but for **desktop**. It installs a local DNS server that hijacks `*.nsite`, runs an embedded Khatru relay + Blossom server as a persistent cache, and exposes a management UI, so any browser can open `https://npub1….nsite` directly.
+
+| | nsite-deck | Bouquet |
+|---|---|---|
+| Platform | macOS / Linux | Android |
+| OS changes | DNS resolver + systemd / launchd daemons | none — single APK |
+| URL entry | browser address bar via `*.nsite` DNS | paste npub / canonical label in-app |
+| Local services | embedded relay + Blossom + gateway | per-session loopback HTTP |
+| Cache | persistent (real Nostr relay) | TTL 5 min events + content-addressed blobs |
+
+nsite-deck targets *hosting* nsites on a desktop alongside the browser. Bouquet targets *viewing* nsites on a phone with zero system surgery.
 
 ## Install
 

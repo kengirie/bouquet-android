@@ -8,9 +8,9 @@ Android 向け Nostr 静的サイトゲートウェイ。`npub1…` または NI
 
 ## 概要 (Abstract)
 
-[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) は、パスから sha256 ハッシュへのマニフェストを Nostr イベント（kind `15128` / `35128`）として公開し、ファイル本体（blob）を Blossom サーバに置く、という静的サイトの仕様を定義しています。仕様にはあわせて **smart-server** 型のリファレンス実装が記述されています。すなわち、信頼された HTTP ホスト（例: `nsite-host.com`）が canonical なサブドメインラベルを解釈し、著者の NIP-65 リレーリストを取得し、マニフェストを取得し、参照されている blob を著者の Blossom サーバから引いてきて、HTTPS で再配信する、というモデルです。このモデルでは、ブラウザは Nostr に関する処理を一切行わず、TLS を終端し全リクエストを観測できる中央集権的な仲介者と話します。仲介者は理論上、その pubkey のコンテンツを検閲したり書き換えたりできる立場にいます。
+[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) は、パス→SHA-256 のマニフェストを Nostr イベント（kind `15128` / `35128`）として公開し、ファイル本体は Blossom サーバに置く、という静的サイトの仕様です。仕様にはあわせて **smart-server** 型のリファレンス実装 — 中央集権的な HTTPS ホスト（例: `nsite-host.com`）がマニフェストを解決し、blob を取得し、HTTPS で再配信する — が記述されています。このモデルではブラウザは Nostr に関する処理を一切行わず、TLS を終端し全リクエストを観測できる単一の仲介者を信頼することになります。
 
-Bouquet はこの構図を反転させます。同じ解決パイプラインを **クライアント側で** 実行するのです。Android アプリ自身がリレーに直接購読し、マニフェストイベントを取得し、各 blob の SHA-256 を検証し、`http://127.0.0.1` 経由で描画されたサイトをハードニングされた組み込み WebView またはシステムブラウザに配信します。ユーザと Nostr / Blossom ネットワークの間に第三者は立ちません。各サイトはユーザ自身が見ているリレー集合に対してロードされ、共有された TLS 終端も、共有されたキャッシュも、サブドメインを落とすことで pubkey をデプラットフォームできる運営者も存在しません。これは精神的には、Nostr クライアントが普段おこなっていること — リレーへ直接購読し、イベントごとに署名検証する — を静的 Web のユースケースに適用したものであり、ネットワークを単一の HTTP オリジンに折りたたんでしまうのとは対照的です。
+Bouquet はこれを **クライアント側で** 実行します。Android アプリ自身がリレーに直接購読し、マニフェストを取得し、各 blob の SHA-256 を検証し、`http://127.0.0.1` 経由でハードニングされた組み込み WebView に配信します。ユーザと Nostr / Blossom ネットワークの間に第三者は立ちません。
 
 NIP-5A 方式 (smart server):
 
@@ -18,7 +18,7 @@ NIP-5A 方式 (smart server):
   ┌──────────────────────────────────────┐
   │  Relays + Blossom servers   (dumb)   │
   └────────────────────┬─────────────────┘
-                       │ NIP-65 / BUD-01
+                       │ site manifest + blobs
                        ▼
   ┌──────────────────────────────────────┐
   │  nsite-host.com             (smart)  │
@@ -39,7 +39,7 @@ Bouquet 方式 (smart client):
   ┌──────────────────────────────────────┐
   │  Relays + Blossom servers   (dumb)   │
   └────────────────────┬─────────────────┘
-                       │ NIP-65 / BUD-01
+                       │ site manifest + blobs
                        ▼
   ┌──────────────────────────────────────┐
   │  User device                (smart)  │
@@ -48,6 +48,20 @@ Bouquet 方式 (smart client):
   │  serves on 127.0.0.1 → WebView       │
   └──────────────────────────────────────┘
 ```
+
+### 関連プロジェクト: [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck)
+
+nsite-deck も同じく smart-client 型の実装ですが、対象は **デスクトップ** (macOS / Linux) です。ローカル DNS サーバが `*.nsite` を横取りし、永続キャッシュとして埋め込み Khatru リレー + Blossom サーバを動かし、管理 UI も提供することで、普通のブラウザから `https://npub1….nsite` を直接開けるようにします。
+
+| | nsite-deck | Bouquet |
+|---|---|---|
+| プラットフォーム | macOS / Linux | Android |
+| OS への変更 | DNS リゾルバ + systemd / launchd デーモン | なし — APK 一つ |
+| URL 入力 | ブラウザのアドレスバー (`*.nsite` DNS) | アプリ内で npub / canonical label を貼り付け |
+| ローカルサービス | 埋め込みリレー + Blossom + gateway | per-session ループバック HTTP |
+| キャッシュ | 永続（実体は Nostr リレー） | TTL 5 分のイベント + content-addressed blob |
+
+nsite-deck はデスクトップ上で nsite を *ホスト* する（普通のブラウザと併用する）方向、Bouquet はスマホ上で nsite を *見る*（OS をいじらずに）方向、という棲み分けです。
 
 ## インストール
 
