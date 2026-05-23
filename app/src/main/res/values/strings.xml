@@ -13,12 +13,12 @@
     <string name="home_footer_github">GITHUB</string>
     <string name="home_footer_github_url">https://github.com/kengirie/bouquet-android</string>
     <string name="nav_home">Home</string>
-    <string name="nav_timeline">Timeline</string>
-    <string name="timeline_coming_soon">Timeline coming soon</string>
+    <string name="nav_timeline">Site List</string>
+    <string name="timeline_coming_soon">Site List coming soon</string>
     <string name="timeline_empty">No nsites found on discovery relays.</string>
-    <string name="timeline_error_prefix">Timeline failed:</string>
+    <string name="timeline_error_prefix">Site List failed:</string>
     <string name="timeline_untitled">(untitled)</string>
-    <string name="timeline_title">Timeline</string>
+    <string name="timeline_title">Site List</string>
     <string name="timeline_root_label">Root site</string>
     <string name="timeline_named_default">(no identifier)</string>
     <string name="timeline_resolve_failed">Could not open: %1$s</string>
