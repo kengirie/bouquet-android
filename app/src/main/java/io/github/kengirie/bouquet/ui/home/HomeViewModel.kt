@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.vitorpamplona.quartz.nip01Core.relay.normalizer.NormalizedRelayUrl
-import com.vitorpamplona.quartz.nip5aStaticWebsites.NamedSiteEvent
 import io.github.kengirie.bouquet.BouquetApplication
 import io.github.kengirie.bouquet.config.Defaults
 import io.github.kengirie.bouquet.core.SiteAddress
@@ -64,16 +63,13 @@ sealed class DecodeResult {
 
 /**
  * UI projection of a [SiteAddress]: pre-formatted strings for the success
- * panel. `identifier` and `kind` are populated only for [SiteAddress.Named]
- * inputs; relay hints are stringified to avoid leaking Quartz types into
- * the UI layer.
+ * panel. [identifier] is populated only for [SiteAddress.Named] inputs
+ * (NIP-5A canonical labels).
  */
 data class AddressDisplay(
     val typeLabel: String,
     val pubkey: String,
     val identifier: String?,
-    val kind: Int?,
-    val relayHints: List<String>,
 )
 
 /**
@@ -137,11 +133,7 @@ class DefaultSiteResolver(private val app: BouquetApplication) : SiteResolver {
         progress: ResolutionProgress,
     ) {
         progress.report(ResolutionState.InProgress.Stage.FETCHING_WRITE_RELAYS)
-        val lookupRelays: Set<NormalizedRelayUrl> =
-            LinkedHashSet<NormalizedRelayUrl>().apply {
-                addAll(address.relayHints)
-                addAll(Defaults.DEFAULT_LOOKUP_RELAYS)
-            }
+        val lookupRelays: Set<NormalizedRelayUrl> = Defaults.DEFAULT_LOOKUP_RELAYS.toSet()
 
         val writeResult: WriteRelaysResult = withContext(Dispatchers.IO) {
             app.nostrClient.fetchWriteRelays(
@@ -324,17 +316,13 @@ class HomeViewModel(
 
 private fun SiteAddress.toDisplay(): AddressDisplay = when (this) {
     is SiteAddress.Root -> AddressDisplay(
-        typeLabel = if (relayHints.isEmpty()) "NPub" else "NProfile",
+        typeLabel = "NPub",
         pubkey = pubkey,
         identifier = null,
-        kind = null,
-        relayHints = relayHints.map { it.url },
     )
     is SiteAddress.Named -> AddressDisplay(
-        typeLabel = "NAddress",
+        typeLabel = "Nsite",
         pubkey = pubkey,
         identifier = identifier,
-        kind = NamedSiteEvent.KIND,
-        relayHints = relayHints.map { it.url },
     )
 }

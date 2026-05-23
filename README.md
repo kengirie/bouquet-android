@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/kengirie/bouquet-android/actions/workflows/build.yml/badge.svg)](https://github.com/kengirie/bouquet-android/actions/workflows/build.yml)
 
-Nostr static-website gateway for Android. Paste an `npub1…` / `nprofile1…` / `naddr1…` address, fetch the manifest event from relays, fetch blobs from Blossom servers, and render the site in a hardened in-app WebView or in the system browser.
+Nostr static-website gateway for Android. Paste an `npub1…` / `naddr1…` address, fetch the manifest event from relays, fetch blobs from Blossom servers, and render the site in a hardened in-app WebView or in the system browser.
 
 Inspired by [bouquet-desktop](https://github.com/kengirie/bouquet-desktop).
 
@@ -17,7 +17,7 @@ Android 8.0 (API 26) 以降が必要です。
 
 ## 使い方
 
-1. 入力欄に `npub1…` / `nprofile1…` / `naddr1…`（kind 15128 root site または kind 35128 named site）を貼り付ける
+1. 入力欄に `npub1…` / `naddr1…`（kind 15128 root site または kind 35128 named site）を貼り付ける
 2. デコード結果（pubkey / リレーヒント / kind）が即座に下に表示される
 3. **「ブラウザで開く」** または **「WebView で開く」** をタップ
 4. 自動でリレー検索 → マニフェスト取得 → Blossom サーバ列取得 → ブラウザ / WebView で表示

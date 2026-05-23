@@ -233,12 +233,19 @@ suspend fun resolveSiteResource(
     }
 
     // 6. Discover Blossom servers: manifest first (most likely to host the
-    //    blob), then user's published list, then defaults.
+    //    blob), then user's published list. NIP-5A: if neither source lists
+    //    any server, the host MUST respond 404 — no built-in default fallback.
     val manifestServers = manifestServerList(manifestEvent)
     val userServers = getBlossomServers(address.pubkey, relays, deps)
-    val servers = deduplicateServers(
-        manifestServers + userServers + Defaults.DEFAULT_BLOSSOM_SERVERS,
-    )
+    val servers = deduplicateServers(manifestServers + userServers)
+    if (servers.isEmpty()) {
+        throw GatewayError(
+            status = 404,
+            statusText = "Not Found",
+            message = "No Blossom servers published for this pubkey " +
+                "(no manifest server tags and no kind 10063 event).",
+        )
+    }
 
     // 7. Fetch the blob.
     val blobResult = deps.fetchBlob(resolution.sha256, servers)
@@ -272,7 +279,7 @@ private suspend fun getRelays(
 ): Set<NormalizedRelayUrl> {
     val pubkey = address.pubkey
     val key = relayListKey(pubkey)
-    val lookupRelays = (address.relayHints + Defaults.DEFAULT_LOOKUP_RELAYS).toSet()
+    val lookupRelays = Defaults.DEFAULT_LOOKUP_RELAYS.toSet()
 
     // Fresh cache.
     deps.eventCache.get(key)?.let { cached ->

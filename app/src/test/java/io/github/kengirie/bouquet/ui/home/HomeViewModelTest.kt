@@ -1,11 +1,9 @@
 package io.github.kengirie.bouquet.ui.home
 
 import androidx.lifecycle.SavedStateHandle
-import com.vitorpamplona.quartz.nip01Core.relay.normalizer.NormalizedRelayUrl
-import com.vitorpamplona.quartz.nip19Bech32.entities.NAddress
 import com.vitorpamplona.quartz.nip19Bech32.entities.NPub
-import com.vitorpamplona.quartz.nip5aStaticWebsites.NamedSiteEvent
 import io.github.kengirie.bouquet.core.SiteAddress
+import io.github.kengirie.bouquet.core.encodePubkeyB36
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,13 +30,10 @@ class HomeViewModelTest {
 
     private val pubkey = "a".repeat(64)
 
-    // Quartz-encoded bech32 forms for the test pubkey. These are computed
-    // once so we don't pay the bech32 cost for every test.
+    // Encoded forms for the test pubkey. Computed once so we don't pay the
+    // bech32/base36 cost per test.
     private val npub: String = NPub.create(pubkey)
-    private val naddr35128: String =
-        NAddress.create(NamedSiteEvent.KIND, pubkey, "my-blog", emptyList<NormalizedRelayUrl>())
-    private val naddrWrongKind: String =
-        NAddress.create(20000, pubkey, "x", emptyList<NormalizedRelayUrl>())
+    private val canonicalLabel: String = "${encodePubkeyB36(pubkey)!!}blog"
 
     /** Set Main dispatcher to a [StandardTestDispatcher] so viewModelScope launches there. */
     private val testDispatcher = StandardTestDispatcher()
@@ -117,31 +112,18 @@ class HomeViewModelTest {
         assertEquals("NPub", s.display.typeLabel)
         assertEquals(pubkey, s.display.pubkey)
         assertEquals(null, s.display.identifier)
-        assertEquals(null, s.display.kind)
     }
 
     @Test
-    fun `valid naddr 35128 via onInputChange produces NAddress display with identifier and kind`() {
+    fun `valid canonical label via onInputChange produces Nsite display with identifier`() {
         val vm = viewModel()
-        vm.onInputChange(naddr35128)
+        vm.onInputChange(canonicalLabel)
         val r = vm.uiState.value.decodeResult
         assertTrue("expected Success, got $r", r is DecodeResult.Success)
         val s = r as DecodeResult.Success
-        assertEquals("NAddress", s.display.typeLabel)
+        assertEquals("Nsite", s.display.typeLabel)
         assertEquals(pubkey, s.display.pubkey)
-        assertEquals("my-blog", s.display.identifier)
-        assertEquals(NamedSiteEvent.KIND, s.display.kind)
-    }
-
-    @Test
-    fun `wrong-kind naddr via onInputChange produces WrongKind failure`() {
-        val vm = viewModel()
-        vm.onInputChange(naddrWrongKind)
-        val r = vm.uiState.value.decodeResult
-        assertTrue("expected Failure, got $r", r is DecodeResult.Failure)
-        val msg = (r as DecodeResult.Failure).message
-        assertTrue("message should mention kind: $msg", msg.contains("kind"))
-        assertTrue("message should mention 20000: $msg", msg.contains("20000"))
+        assertEquals("blog", s.display.identifier)
     }
 
     @Test
@@ -303,10 +285,10 @@ class HomeViewModelTest {
         )
 
         // Typing a new address should clear the failure and re-decode.
-        vm.onInputChange(naddr35128)
+        vm.onInputChange(canonicalLabel)
         assertEquals(ResolutionState.Idle, vm.uiState.value.resolution)
         assertTrue(
-            "decode should succeed for a valid naddr",
+            "decode should succeed for a valid canonical label",
             vm.uiState.value.decodeResult is DecodeResult.Success,
         )
     }

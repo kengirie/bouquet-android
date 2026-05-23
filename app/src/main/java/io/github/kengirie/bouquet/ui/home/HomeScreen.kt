@@ -334,10 +334,6 @@ private fun SuccessPanel(display: AddressDisplay) {
         buildList {
             add("Pubkey" to display.pubkey)
             display.identifier?.let { add("Identifier" to it.ifEmpty { "(empty)" }) }
-            display.kind?.let { add("Kind" to it.toString()) }
-            if (display.relayHints.isNotEmpty()) {
-                add("Relay hints" to display.relayHints.joinToString(", "))
-            }
         }
     }
 

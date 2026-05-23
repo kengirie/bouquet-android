@@ -3,7 +3,6 @@ package io.github.kengirie.bouquet.core
 import com.vitorpamplona.quartz.nip01Core.core.Event
 import com.vitorpamplona.quartz.nip01Core.relay.normalizer.NormalizedRelayUrl
 import com.vitorpamplona.quartz.nip01Core.relay.normalizer.RelayUrlNormalizer
-import com.vitorpamplona.quartz.nip19Bech32.entities.NAddress
 import com.vitorpamplona.quartz.nip19Bech32.entities.NPub
 import com.vitorpamplona.quartz.nip5aStaticWebsites.NamedSiteEvent
 import com.vitorpamplona.quartz.nip5aStaticWebsites.RootSiteEvent
@@ -222,13 +221,14 @@ class GatewayTest {
         // Cached blob has the resolved content-type stored.
         assertEquals("text/html; charset=utf-8", blobCache.store[sha256Index]!!.contentType)
 
-        // Server list = manifest + user + defaults.
+        // Server list = manifest + user (no built-in defaults; NIP-5A
+        // requires 404 if both sources are empty, so the gateway never
+        // injects fallback servers).
         assertNotNull(blobServersUsed)
-        assertTrue(blobServersUsed!!.contains("https://manifest.server"))
-        assertTrue(blobServersUsed!!.contains("https://user.server"))
-        for (default in Defaults.DEFAULT_BLOSSOM_SERVERS) {
-            assertTrue("expected default server in list: $default", blobServersUsed!!.contains(default))
-        }
+        assertEquals(
+            listOf("https://manifest.server", "https://user.server"),
+            blobServersUsed,
+        )
     }
 
     // ── 6. Happy path (naddr / named site) ────────────────────────────────
@@ -261,8 +261,8 @@ class GatewayTest {
             fetchBlob = { _, _ -> BlobFetchResult(indexBytes, "text/html; charset=utf-8") },
         )
 
-        val naddr = naddrFor(NamedSiteEvent.KIND, pubkey, identifier)
-        val result = resolveSiteResource(naddr, "/", deps)
+        val canonicalLabel = "${encodePubkeyB36(pubkey)!!}$identifier"
+        val result = resolveSiteResource(canonicalLabel, "/", deps)
 
         assertEquals(200, result.status)
         assertEquals("/index.html", result.resolvedPath)
@@ -471,10 +471,10 @@ class GatewayTest {
         }
     }
 
-    // ── 13. Blossom server dedup (manifest + user + defaults) ─────────────
+    // ── 13. Blossom server dedup (manifest + user) ────────────────────────
 
     @Test
-    fun `blossom server dedup respects all three sources`() = runTest {
+    fun `blossom server dedup merges manifest and user sources`() = runTest {
         val manifest = buildRootSiteEvent(
             pubkey,
             paths = listOf("/index.html" to sha256Index),
@@ -507,7 +507,7 @@ class GatewayTest {
             "https://server1.example",
             "https://server2.example/",
             "https://server3.example",
-        ) + Defaults.DEFAULT_BLOSSOM_SERVERS
+        )
         assertEquals(expected, seenServers)
     }
 
@@ -540,6 +540,43 @@ class GatewayTest {
                 e.message!!.contains("Path not found"),
             )
         }
+    }
+
+    // ── 15. No manifest servers and no 10063 event → 404 (NIP-5A MUST) ────
+
+    @Test
+    fun `no manifest servers and no blossom list throws GatewayError 404`() = runTest {
+        // Manifest has paths but no `server` tags; no kind 10063 event for
+        // the pubkey. NIP-5A: host MUST respond 404 — fetchBlob must never
+        // be called.
+        val manifest = buildRootSiteEvent(
+            pubkey,
+            paths = listOf("/index.html" to sha256Index),
+            servers = emptyList(),
+        )
+
+        var fetchBlobCalls = 0
+        val deps = GatewayDeps(
+            eventCache = FakeEventCache(),
+            blobCache = FakeBlobCache(),
+            fetchRelayList = { _, _ -> null },
+            fetchManifest = { _, _ -> manifest },
+            fetchBlossomList = { _, _ -> null },
+            fetchBlob = { _, _ -> fetchBlobCalls++; null },
+        )
+
+        try {
+            resolveSiteResource(npubFor(pubkey), "/", deps)
+            fail("expected GatewayError")
+        } catch (e: GatewayError) {
+            assertEquals(404, e.status)
+            assertEquals("Not Found", e.statusText)
+            assertTrue(
+                "expected 'No Blossom servers' in: ${e.message}",
+                e.message!!.contains("No Blossom servers"),
+            )
+        }
+        assertEquals(0, fetchBlobCalls)
     }
 
     // ── In-memory fakes ───────────────────────────────────────────────────
@@ -670,10 +707,6 @@ class GatewayTest {
 
     /** Encode a hex pubkey as an `npub1...` bech32 string via Quartz. */
     private fun npubFor(pubkeyHex: String): String = NPub.create(pubkeyHex)
-
-    /** Encode a (kind, author, dTag) triple as an `naddr1...` bech32 string via Quartz. */
-    private fun naddrFor(kind: Int, pubkeyHex: String, dTag: String): String =
-        NAddress.create(kind, pubkeyHex, dTag, emptyList<NormalizedRelayUrl>())
 
     // Keep the unused import live so future tests can use it without needing
     // to re-add the import.

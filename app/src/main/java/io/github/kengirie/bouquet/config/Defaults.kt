@@ -19,11 +19,9 @@ object Defaults {
     val DEFAULT_LOOKUP_RELAYS: List<NormalizedRelayUrl> =
         LOOKUP_RELAY_URLS.map { RelayUrlNormalizer.normalize(it) }
 
-    val DEFAULT_BLOSSOM_SERVERS = listOf(
-        "https://cdn.satellite.earth",
-        "https://blossom.primal.net",
-        "https://blossoml3001.site",
-    )
+    // No DEFAULT_BLOSSOM_SERVERS: NIP-5A requires the host to 404 when the
+    // pubkey publishes neither manifest `server` tags nor a kind 10063
+    // event. Injecting fallback CDNs would mask that contract.
 
     const val RELAY_TIMEOUT_MS = 8_000L
     const val BLOB_TIMEOUT_MS = 15_000L
