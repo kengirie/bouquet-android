@@ -52,7 +52,7 @@ Bouquet approach (smart client):
 
 ### Related: [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck)
 
-nsite-deck is another smart-client implementation, but for **desktop**. It installs a local DNS server that hijacks `*.nsite`, runs an embedded Khatru relay + Blossom server as a persistent cache, and exposes a management UI, so any browser can open `https://npub1….nsite` directly.
+nsite-deck is a **desktop** (macOS / Linux) smart-client: it installs a local DNS resolver to hijack `*.nsite`, runs an embedded Khatru relay + Blossom server as a persistent cache, and ships a management UI so any browser can open `https://npub1….nsite` directly. Bouquet covers the opposite case — *viewing* nsites on a phone with zero system surgery. No DNS changes, no background daemons, no browser configuration: a single APK gives you a hardened in-app WebView talking to a per-session loopback server, and the only persistent state is a small on-disk cache.
 
 | | nsite-deck | Bouquet |
 |---|---|---|
@@ -61,8 +61,6 @@ nsite-deck is another smart-client implementation, but for **desktop**. It insta
 | URL entry | browser address bar via `*.nsite` DNS | paste npub / canonical label in-app |
 | Local services | embedded relay + Blossom + gateway | per-session loopback HTTP |
 | Cache | persistent (real Nostr relay) | TTL 5 min events + content-addressed blobs |
-
-nsite-deck targets *hosting* nsites on a desktop alongside the browser. Bouquet targets *viewing* nsites on a phone with zero system surgery.
 
 ## Install
 
@@ -122,6 +120,13 @@ When a `v*` tag is pushed, GitHub Actions builds the APK, signs it with the rele
 git tag v0.1.0
 git push origin v0.1.0
 ```
+
+## Acknowledgements
+
+This project was inspired by and references the following prior work:
+
+- [nsite-gateway](https://github.com/hzrd149/nsite-gateway)
+- [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck)
 
 ## License
 

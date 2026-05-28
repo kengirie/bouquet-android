@@ -51,7 +51,7 @@ Bouquet 方式 (smart client):
 
 ### 関連プロジェクト: [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck)
 
-nsite-deck も同じく smart-client 型の実装ですが、対象は **デスクトップ** (macOS / Linux) です。ローカル DNS サーバが `*.nsite` を横取りし、永続キャッシュとして埋め込み Khatru リレー + Blossom サーバを動かし、管理 UI も提供することで、普通のブラウザから `https://npub1….nsite` を直接開けるようにします。
+nsite-deck は **デスクトップ** (macOS / Linux) 向けの smart-client 実装で、ローカル DNS リゾルバが `*.nsite` を横取りし、永続キャッシュとして埋め込み Khatru リレー + Blossom サーバを動かし、管理 UI も備えることで、普通のブラウザから `https://npub1….nsite` を直接開けるようにします。Bouquet は反対側のユースケース、つまり **スマホ上で nsite を *見る*** ことに特化しています。DNS の書き換えもバックグラウンドデーモンもブラウザ設定も不要で、APK 一つでハードニングされた組み込み WebView が起動し、セッション毎のループバックサーバ越しにサイトを描画します。永続的に残るのはディスク上の小さなキャッシュだけです。
 
 | | nsite-deck | Bouquet |
 |---|---|---|
@@ -60,8 +60,6 @@ nsite-deck も同じく smart-client 型の実装ですが、対象は **デス�
 | URL 入力 | ブラウザのアドレスバー (`*.nsite` DNS) | アプリ内で npub / canonical label を貼り付け |
 | ローカルサービス | 埋め込みリレー + Blossom + gateway | per-session ループバック HTTP |
 | キャッシュ | 永続（実体は Nostr リレー） | TTL 5 分のイベント + content-addressed blob |
-
-nsite-deck はデスクトップ上で nsite を *ホスト* する（普通のブラウザと併用する）方向、Bouquet はスマホ上で nsite を *見る*（OS をいじらずに）方向、という棲み分けです。
 
 ## インストール
 
@@ -122,6 +120,13 @@ JDK 21 が必要です（Android Studio 同梱の JBR / Homebrew の `openjdk@21
 git tag v0.1.0
 git push origin v0.1.0
 ```
+
+## Acknowledgements
+
+このプロジェクトは以下の先行実装を参考にしています。
+
+- [nsite-gateway](https://github.com/hzrd149/nsite-gateway) — NIP-5A の smart-server 型リファレンス実装
+- [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck) — デスクトップ向け smart-client 実装
 
 ## License
 
