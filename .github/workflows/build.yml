@@ -95,4 +95,4 @@ jobs:
         env:
           SIGN_WITH: ${{ secrets.ZAPSTORE_SIGN_WITH }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./zsp publish -y
+        run: ./zsp publish -quiet
