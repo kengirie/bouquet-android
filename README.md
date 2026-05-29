@@ -127,6 +127,7 @@ This project was inspired by and references the following prior work:
 
 - [nsite-gateway](https://github.com/hzrd149/nsite-gateway)
 - [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck)
+- [Amethyst](https://github.com/vitorpamplona/amethyst) 
 
 ## License
 

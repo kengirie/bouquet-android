@@ -125,8 +125,9 @@ git push origin v0.1.0
 
 このプロジェクトは以下の先行実装を参考にしています。
 
-- [nsite-gateway](https://github.com/hzrd149/nsite-gateway) — NIP-5A の smart-server 型リファレンス実装
-- [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck) — デスクトップ向け smart-client 実装
+- [nsite-gateway](https://github.com/hzrd149/nsite-gateway) 
+- [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck)
+- [Amethyst](https://github.com/vitorpamplona/amethyst) 
 
 ## License
 
