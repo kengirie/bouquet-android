@@ -1,0 +1,20 @@
+repository: https://github.com/kengirie/bouquet-android
+pubkey: npub1svne455wa3rctcsnnhzjn2t9pldmgfpkd4rytewzsf8he02fysxsvgwhj4
+release_source: ./app/build/outputs/apk/release/app-release.apk
+license: MIT
+name: Bouquet
+summary: Nostr static-website gateway for Android
+description: |
+  Bouquet renders NIP-5A static sites on Android by talking to Nostr relays and
+  Blossom servers directly — no smart-server intermediary. Paste an `npub1…` or
+  NIP-5A canonical label, the app fetches the manifest event, verifies every
+  blob's SHA-256, and serves the result over `http://127.0.0.1` to a hardened
+  in-app WebView (or hands it to the system browser).
+tags:
+  - nostr
+  - blossom
+  - nip-5a
+  - web
+  - browser
+metadata_sources:
+  - github

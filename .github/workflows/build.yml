@@ -79,3 +79,20 @@ jobs:
           files: bouquet-android-${{ github.ref_name }}.apk
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+      - name: Install zsp (zapstore CLI)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          ZSP_VERSION: 0.4.10
+        run: |
+          curl -fsSL -o zsp \
+            "https://github.com/zapstore/zsp/releases/download/v${ZSP_VERSION}/zsp-${ZSP_VERSION}-linux-amd64"
+          chmod +x zsp
+          ./zsp --version || true
+
+      - name: Publish to Zapstore
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          SIGN_WITH: ${{ secrets.ZAPSTORE_SIGN_WITH }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./zsp publish -y
