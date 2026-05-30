@@ -8,31 +8,24 @@ import com.vitorpamplona.quartz.nip01Core.relay.normalizer.RelayUrlNormalizer
  * Mirrors bouquet-desktop's `src/core/defaults.ts`.
  */
 object Defaults {
-    val LOOKUP_RELAY_URLS = listOf(
+    val DEFAULT_RELAY_URLS = listOf(
+        "wss://nsite.run",
         "wss://relay.damus.io",
         "wss://relay.nostr.band",
         "wss://nos.lol",
         "wss://purplepag.es",
     )
 
-    /** Pre-normalized lookup relays for use with Quartz APIs. */
-    val DEFAULT_LOOKUP_RELAYS: List<NormalizedRelayUrl> =
-        LOOKUP_RELAY_URLS.map { RelayUrlNormalizer.normalize(it) }
+    /** Pre-normalized default relays for use with Quartz APIs. */
+    val DEFAULT_RELAYS: List<NormalizedRelayUrl> =
+        DEFAULT_RELAY_URLS.map { RelayUrlNormalizer.normalize(it) }
 
-    // Relays known to carry NIP-5A static-site events (kind 15128 / 35128).
-    // Disjoint from LOOKUP_RELAY_URLS so timeline discovery doesn't share a
-    // socket pool with per-pubkey relay-list lookups. relay.nsite.lol is
-    // the canonical indexer; the rest are general-purpose relays that
-    // accept these kinds in practice.
-    val TIMELINE_RELAY_URLS = listOf(
-        "wss://relay.nsite.lol",
-        "wss://relay.damus.io",
-        "wss://relay.nostr.band",
-        "wss://nos.lol",
-    )
-
-    val DEFAULT_TIMELINE_RELAYS: List<NormalizedRelayUrl> =
-        TIMELINE_RELAY_URLS.map { RelayUrlNormalizer.normalize(it) }
+    // Both lookup (per-pubkey) and timeline (discovery) flows share the same
+    // relay set so users see consistent results across screens.
+    val LOOKUP_RELAY_URLS = DEFAULT_RELAY_URLS
+    val DEFAULT_LOOKUP_RELAYS: List<NormalizedRelayUrl> = DEFAULT_RELAYS
+    val TIMELINE_RELAY_URLS = DEFAULT_RELAY_URLS
+    val DEFAULT_TIMELINE_RELAYS: List<NormalizedRelayUrl> = DEFAULT_RELAYS
 
     // No DEFAULT_BLOSSOM_SERVERS: NIP-5A requires the host to 404 when the
     // pubkey publishes neither manifest `server` tags nor a kind 10063
