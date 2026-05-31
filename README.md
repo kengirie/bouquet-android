@@ -9,7 +9,7 @@ Nostr static-website gateway for Android. Paste an `npub1…` or a NIP-5A canoni
 
 ## Abstract
 
-[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) publishes static sites as a Nostr manifest event (kind `15128` / `35128`) plus file blobs on Blossom servers. The spec ships a **smart-server** reference: a centralized HTTPS host (e.g. `nsite-host.com`) resolves the manifest, fetches blobs, and re-serves the site — so the browser trusts a single intermediary that terminates TLS, observes every request, and can deplatform a pubkey by dropping a subdomain.
+[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) publishes static sites as a Nostr manifest event (kind `15128` / `35128`) plus file blobs on Blossom servers. The spec ships a **smart-server** reference: a centralized HTTPS host (e.g. `nsite-host.com`) resolves the manifest, fetches blobs, and re-serves the site — so the browser trusts a single intermediary that terminates TLS, can observe requests, and can take a pubkey offline by dropping a subdomain.
 
 Bouquet inverts that. The Android app subscribes to relays directly, fetches the manifest, verifies each blob's SHA-256, and serves the result over `http://127.0.0.1` to a hardened in-app WebView. No third party sits between the user and the Nostr / Blossom network.
 
@@ -52,7 +52,7 @@ Bouquet approach (smart client):
 
 ### Related: [nsite-deck](https://gitworkshop.dev/npub1hw6amg8p24ne08c9gdq8hhpqx0t0pwanpae9z25crn7m9uy7yarse465gr/nsite-deck)
 
-nsite-deck is a **desktop** (macOS / Linux) smart-client: it installs a local DNS resolver to hijack `*.nsite`, runs an embedded Khatru relay + Blossom server as a persistent cache, and ships a management UI so any browser can open `https://npub1….nsite` directly. Bouquet covers the opposite case — *viewing* nsites on a phone with zero system surgery. No DNS changes, no background daemons, no browser configuration: a single APK gives you a hardened in-app WebView talking to a per-session loopback server, and the only persistent state is a small on-disk cache.
+nsite-deck is a **desktop** (macOS / Linux) smart-client: it installs a local DNS resolver to intercept `*.nsite`, runs an embedded Khatru relay + Blossom server as a persistent cache, and ships a management UI so any browser can open `https://npub1….nsite` directly. Bouquet covers the opposite case — *viewing* nsites on a phone with no system-level changes. No DNS changes, no browser configuration: a single APK gives you a hardened in-app WebView talking to a per-session loopback server, and the only persistent state is a small on-disk cache.
 
 | | nsite-deck | Bouquet |
 |---|---|---|
@@ -61,6 +61,10 @@ nsite-deck is a **desktop** (macOS / Linux) smart-client: it installs a local DN
 | URL entry | browser address bar via `*.nsite` DNS | paste npub / canonical label in-app |
 | Local services | embedded relay + Blossom + gateway | per-session loopback HTTP |
 | Cache | persistent (real Nostr relay) | TTL 5 min events + content-addressed blobs |
+
+## Demo
+
+https://github.com/kengirie/bouquet-android/raw/main/Screen_Recording_20260531_122304_Firefox.mp4
 
 ## Install
 
