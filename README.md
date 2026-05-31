@@ -64,7 +64,7 @@ nsite-deck is a **desktop** (macOS / Linux) smart-client: it installs a local DN
 
 ## Demo
 
-https://github.com/kengirie/bouquet-android/raw/main/Screen_Recording_20260531_122304_Firefox.mp4
+https://github.com/user-attachments/assets/e1bbbbb9-0bc6-419b-9b1e-f44fdb3772fd
 
 ## Install
 
