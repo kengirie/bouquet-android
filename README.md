@@ -64,7 +64,7 @@ nsite-deck is a **desktop** (macOS / Linux) smart-client: it installs a local DN
 
 ## Demo
 
-https://github.com/user-attachments/assets/e1bbbbb9-0bc6-419b-9b1e-f44fdb3772fd
+https://github.com/user-attachments/assets/6bd2a5c8-a129-4afe-83bf-15ee7fe2af26
 
 ## Install
 
