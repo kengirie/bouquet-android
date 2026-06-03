@@ -9,7 +9,7 @@ Nostr static-website gateway for Android. Paste an `npub1…` or a NIP-5A canoni
 
 ## Abstract
 
-[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) publishes static sites as a Nostr manifest event (kind `15128` / `35128`) plus file blobs on Blossom servers. The spec ships a **smart-server** reference: a centralized HTTPS host (e.g. `nsite-host.com`) resolves the manifest, fetches blobs, and re-serves the site — so the browser trusts a single intermediary that terminates TLS, can observe requests, and can take a pubkey offline by dropping a subdomain.
+[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) publishes static sites as a Nostr manifest event (kind `15128` / `35128`) plus file blobs on Blossom servers. The spec ships a **smart-server** reference: an HTTPS host (e.g. `nsite-host.com`) resolves the manifest, fetches blobs, and re-serves the site. Anyone can run such a host, but whichever one the browser connects to becomes a trusted intermediary that terminates TLS, can observe requests, and can take a pubkey offline by dropping a subdomain.
 
 Bouquet inverts that. The Android app subscribes to relays directly, fetches the manifest, verifies each blob's SHA-256, and serves the result over `http://127.0.0.1` to a hardened in-app WebView. No third party sits between the user and the Nostr / Blossom network.
 
@@ -24,7 +24,7 @@ NIP-5A approach (smart server):
   ┌──────────────────────────────────────┐
   │  nsite-host.com             (smart)  │
   │  resolves manifest · fetches blobs · │
-  │  verifies SHA-256 · serves HTTPS     │
+  │  serves HTTPS                        │
   └────────────────────┬─────────────────┘
                        │ HTTPS
                        ▼

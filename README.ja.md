@@ -8,7 +8,7 @@ Android 向け Nostr 静的サイトゲートウェイ。`npub1…` または NI
 
 ## 概要 (Abstract)
 
-[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) は、パス→SHA-256 のマニフェストを Nostr イベント（kind `15128` / `35128`）として公開し、ファイル本体は Blossom サーバに置く、という静的サイトの仕様です。仕様にはあわせて **smart-server** 型のリファレンス実装 — 中央集権的な HTTPS ホスト（例: `nsite-host.com`）がマニフェストを解決し、blob を取得し、HTTPS で再配信する — が記述されています。このモデルではブラウザは Nostr に関する処理を一切行わず、TLS を終端し、リクエストを観測でき、サブドメインを落とすことで pubkey をオフラインにもできる単一の仲介者を信頼することになります。
+[NIP-5A](https://github.com/nostr-protocol/nips/blob/master/5A.md) は、パス→SHA-256 のマニフェストを Nostr イベント（kind `15128` / `35128`）として公開し、ファイル本体は Blossom サーバに置く、という静的サイトの仕様です。仕様にはあわせて **smart-server** 型のリファレンス実装 — HTTPS ホスト（例: `nsite-host.com`）がマニフェストを解決し、blob を取得し、HTTPS で再配信する — が記述されています。このようなホストは誰でも立てられますが、ブラウザが接続したホストが信頼される仲介者になります。このモデルではブラウザは Nostr に関する処理を一切行わず、その仲介者は TLS を終端し、リクエストを観測でき、サブドメインを落とすことで pubkey をオフラインにもできます。
 
 Bouquet はこれを **クライアント側で** 実行します。Android アプリ自身がリレーに直接購読し、マニフェストを取得し、各 blob の SHA-256 を検証し、`http://127.0.0.1` 経由でハードニングされた組み込み WebView に配信します。ユーザと Nostr / Blossom ネットワークの間に第三者は立ちません。
 
@@ -23,7 +23,7 @@ NIP-5A 方式 (smart server):
   ┌──────────────────────────────────────┐
   │  nsite-host.com             (smart)  │
   │  resolves manifest · fetches blobs · │
-  │  verifies SHA-256 · serves HTTPS     │
+  │  serves HTTPS                        │
   └────────────────────┬─────────────────┘
                        │ HTTPS
                        ▼
